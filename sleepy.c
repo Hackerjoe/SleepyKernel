@@ -114,7 +114,8 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
 {
   struct sleepy_dev *dev = (struct sleepy_dev *)filp->private_data;
   ssize_t retval = 0;
-
+  int remainingTime;
+  int timeFromUser;
   if (mutex_lock_killable(&dev->sleepy_mutex))
     return -EINTR;
 
@@ -126,9 +127,9 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
     return EINVAL;
   }
 
-  int timeFromUser;
+
   timeFromUser = *(int*)dev->data;
-  int remainingTime;
+
   mutex_unlock(&dev->sleepy_mutex);
   remainingTime = wait_event_interruptible_timeout(dev->wq,dev->flag != 0,timeFromUser*HZ);
   mutex_lock(&dev->sleepy_mutex);
