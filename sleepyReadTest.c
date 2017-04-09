@@ -11,8 +11,7 @@ int main(int argc, char* argv[])
     return -1;
   }
   char b[1];
-  while(1)
-  {
+
     if(read(fd,b,1) <0)
     {
       printf("ERROR while reading.\n");
@@ -21,6 +20,6 @@ int main(int argc, char* argv[])
     {
       printf("%d\n",b[0]);
     }
-  }
+
   return 0;
 }
