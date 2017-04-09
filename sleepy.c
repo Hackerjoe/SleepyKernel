@@ -130,13 +130,8 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
     mutex_unlock(&dev->sleepy_mutex);
     return EINVAL;
   }
-  if (copy_from_user(dev->data, buf, count) != 0)
-  {
-    printk(KERN_INFO "Cant copy from user\n");
-    return -EINTR;
-  }
 
-  timeFromUser = *(int*)dev->data;
+  timeFromUser = *(int*)buf;
 
   mutex_unlock(&dev->sleepy_mutex);
   remainingTime = wait_event_interruptible_timeout(dev->wq,dev->flag != 0,timeFromUser*HZ);
