@@ -13,7 +13,6 @@ int main(int argc, char* argv[])
   char b[1];
   while(1)
   {
-    write(fd,&sleepNumber,4);
     if(read(fd,b,1) <0)
     {
       printf("ERROR while reading.\n");
