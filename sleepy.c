@@ -92,7 +92,7 @@ sleepy_read(struct file *filp, char __user *buf, size_t count,
 
   if (mutex_lock_killable(&dev->sleepy_mutex))
     return -EINTR;
-
+  printk(KERN_INFO "BEFORE.\n");
   /* YOUR CODE HERE */
   if(waitqueue_active(&dev->wq)==0)
   {
