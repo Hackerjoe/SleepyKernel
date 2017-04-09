@@ -23,9 +23,5 @@ int main(int argc, char* argv[])
       printf("%d\n",b[0]);
     }
   }
-  if(ret < 0)
-  {
-    printf("Could Not Write\n");
-  }
   return 0;
 }
