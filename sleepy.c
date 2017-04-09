@@ -127,11 +127,11 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
   }
 
   int timeFromUser = *(int*)dev->data;
-  int remainingTime;
+  int remainingTime = 0;
   mutex_unlock(&dev->sleepy_mutex);
   remainingTime = wait_event_interruptible_timeout(dev->wq,dev->flag != 0,timeFromUser*HZ);
   mutex_lock(&dev->sleepy_mutex);
-
+  dev->flag = 0;
   if(remainingTime == 0)
   {
     mutex_unlock(&dev->sleepy_mutex);
