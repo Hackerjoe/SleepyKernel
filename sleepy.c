@@ -113,7 +113,9 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
     return -EINTR;
 
   /* YOUR CODE HERE */
-  int time = wait_event_interruptible_timeout(&dev->wq, dev->flag != 0, 100);
+  dev->flag = 0;
+  int time;
+  time = wait_event_interruptible_timeout(&dev->wq, dev->flag != 0, 100);
   printk(KERN_INFO "Time: %d",time);
   /* END YOUR CODE */
 
