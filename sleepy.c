@@ -96,9 +96,11 @@ sleepy_read(struct file *filp, char __user *buf, size_t count,
   /* YOUR CODE HERE */
   if(waitqueue_active(&dev->wq)==0)
   {
+    printk(KERN_INFO "No one in queue.\n");
     mutex_unlock(&dev->sleepy_mutex);
     return 0;
   }
+  printk(KERN_INFO "Wake everybody up.\n");
   dev->flag = 1;
   wake_up_interruptible(&dev->wq);
 
@@ -123,6 +125,7 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
 
   if(count > 4 || count == 0)
   {
+    printk(KERN_INFO "Wrong input count.\n");
     mutex_unlock(&dev->sleepy_mutex);
     return EINVAL;
   }
@@ -136,11 +139,13 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
   dev->flag = 0;
   if(remainingTime == 0)
   {
+    printk(KERN_INFO "Normal exit.\n");
     mutex_unlock(&dev->sleepy_mutex);
     return 0;
   }
   else
   {
+    printk(KERN_INFO "Not normal exit.\n");
     mutex_unlock(&dev->sleepy_mutex);
     return remainingTime/HZ;
   }
