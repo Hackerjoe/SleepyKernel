@@ -145,9 +145,9 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
   }
   else
   {
-    printk(KERN_INFO "Not normal exit %d.\n",remainingTime);
+    printk(KERN_INFO "Not normal exit. %d\n",remainingTime/HZ);
     mutex_unlock(&dev->sleepy_mutex);
-    return remainingTime;
+    return remainingTime/HZ;
   }
   /* END YOUR CODE */
 
