@@ -87,12 +87,13 @@ ssize_t
 sleepy_read(struct file *filp, char __user *buf, size_t count,
 	    loff_t *f_pos)
 {
+
   struct sleepy_dev *dev = (struct sleepy_dev *)filp->private_data;
   ssize_t retval = 0;
 
   if (mutex_lock_killable(&dev->sleepy_mutex))
     return -EINTR;
-  printk(KERN_INFO "BEFORE.\n");
+
   /* YOUR CODE HERE */
   if(waitqueue_active(&dev->wq)==0)
   {
@@ -129,7 +130,11 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
     mutex_unlock(&dev->sleepy_mutex);
     return EINVAL;
   }
-
+  if (copy_from_user(dev->data, buf, count) != 0)
+  {
+    printk(KERN_INFO "Cant copy from user\n");
+    return -EINTR;
+  }
 
   timeFromUser = *(int*)dev->data;
 
