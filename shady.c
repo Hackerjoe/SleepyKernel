@@ -53,6 +53,7 @@ static struct shady_dev *shady_devices = NULL;
 static struct class *shady_class = NULL;
 /* ================================================================ */
 
+/*If you got to the system_call_table file and do a grep for system_call_table you get this address back! :-)S-<*/
 void **system_call_table_address = (void*)0xffffffff818001c0;
 void set_addr_rw (unsigned long addr) {
   unsigned int level;
@@ -66,7 +67,7 @@ asmlinkage int my_open (const char* file, int flags, int mode)
 {
    /* YOUR CODE HERE */
    printk("File %s is being open.\n",file);
-   return old_open(file,flags,mode);
+   return -1;
 }
 
 int
