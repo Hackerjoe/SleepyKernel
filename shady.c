@@ -1,10 +1,10 @@
-/* cfake.c - implementation of a simple module for a character device 
+/* cfake.c - implementation of a simple module for a character device
  * can be used for testing, demonstrations, etc.
  */
 /* ========================================================================
- * Copyright (C) 2010-2011, Institute for System Programming 
+ * Copyright (C) 2010-2011, Institute for System Programming
  *                          of the Russian Academy of Sciences (ISPRAS)
- * Authors: 
+ * Authors:
  *      Eugene A. Shatokhin <spectre@ispras.ru>
  *      Andrey V. Tsyvarev  <tsyvarev@ispras.ru>
  *
@@ -31,6 +31,9 @@
 #include <linux/unistd.h>
 
 #include <asm/uaccess.h>
+#include <linux/linkage.h>
+#include <linux/mm.h>
+#include <asm/uaccess.h>
 
 #include "shady.h"
 
@@ -50,70 +53,86 @@ static struct shady_dev *shady_devices = NULL;
 static struct class *shady_class = NULL;
 /* ================================================================ */
 
-int 
+void **system_call_table_address = (void*)0xffffffff818001c0;
+void set_addr_rw (unsigned long addr) {
+  unsigned int level;
+  pte_t *pte = lookup_address(addr, &level);
+  if (pte->pte &~ _PAGE_RW) pte->pte |= _PAGE_RW;
+}
+
+asmlinkage int (*old_open) (const char*, int, int);
+
+asmlinkage int my_open (const char* file, int flags, int mode)
+{
+   /* YOUR CODE HERE */
+   printk("File %s is being open.\n",file);
+   return old_open(file,flags,mode);
+}
+
+int
 shady_open(struct inode *inode, struct file *filp)
 {
   unsigned int mj = imajor(inode);
   unsigned int mn = iminor(inode);
-	
+
   struct shady_dev *dev = NULL;
-	
+
   if (mj != shady_major || mn < 0 || mn >= shady_ndevices)
     {
       printk(KERN_WARNING "[target] "
-	     "No device found with minor=%d and major=%d\n", 
+	     "No device found with minor=%d and major=%d\n",
 	     mj, mn);
       return -ENODEV; /* No such device */
     }
-	
+
   /* store a pointer to struct shady_dev here for other methods */
   dev = &shady_devices[mn];
-  filp->private_data = dev; 
+  filp->private_data = dev;
 
   if (inode->i_cdev != &dev->cdev)
     {
       printk(KERN_WARNING "[target] open: internal error\n");
       return -ENODEV; /* No such device */
     }
-	
+
   return 0;
 }
 
-int 
+int
 shady_release(struct inode *inode, struct file *filp)
 {
   return 0;
 }
 
-ssize_t 
-shady_read(struct file *filp, char __user *buf, size_t count, 
+ssize_t
+shady_read(struct file *filp, char __user *buf, size_t count,
 	    loff_t *f_pos)
 {
   struct shady_dev *dev = (struct shady_dev *)filp->private_data;
   ssize_t retval = 0;
-	
+
   if (mutex_lock_killable(&dev->shady_mutex))
     return -EINTR;
-	
-  mutex_unlock(&dev->shady_mutex);
-  return retval;
-}
-                
-ssize_t 
-shady_write(struct file *filp, const char __user *buf, size_t count, 
-	     loff_t *f_pos)
-{
-  struct shady_dev *dev = (struct shady_dev *)filp->private_data;
-  ssize_t retval = 0;
-	
-  if (mutex_lock_killable(&dev->shady_mutex))
-    return -EINTR;
-	
+
   mutex_unlock(&dev->shady_mutex);
   return retval;
 }
 
-loff_t 
+ssize_t
+shady_write(struct file *filp, const char __user *buf, size_t count,
+	     loff_t *f_pos)
+{
+  struct shady_dev *dev = (struct shady_dev *)filp->private_data;
+  ssize_t retval = 0;
+
+  if (mutex_lock_killable(&dev->shady_mutex))
+    return -EINTR;
+
+  mutex_unlock(&dev->shady_mutex);
+  return retval;
+}
+
+loff_t
 shady_llseek(struct file *filp, loff_t off, int whence)
 {
   return 0;
@@ -134,22 +153,22 @@ struct file_operations shady_fops = {
  * Device class should be created beforehand.
  */
 static int
-shady_construct_device(struct shady_dev *dev, int minor, 
+shady_construct_device(struct shady_dev *dev, int minor,
 			struct class *class)
 {
   int err = 0;
   dev_t devno = MKDEV(shady_major, minor);
   struct device *device = NULL;
-    
+
   BUG_ON(dev == NULL || class == NULL);
 
   /* Memory is to be allocated when the device is opened the first time */
-  dev->data = NULL;     
+  dev->data = NULL;
   mutex_init(&dev->shady_mutex);
-    
+
   cdev_init(&dev->cdev, &shady_fops);
   dev->cdev.owner = THIS_MODULE;
-    
+
   err = cdev_add(&dev->cdev, devno, 1);
   if (err)
     {
@@ -158,7 +177,7 @@ shady_construct_device(struct shady_dev *dev, int minor,
       return err;
     }
 
-  device = device_create(class, NULL, /* no parent device */ 
+  device = device_create(class, NULL, /* no parent device */
 			 devno, NULL, /* no additional data */
 			 SHADY_DEVICE_NAME "%d", minor);
 
@@ -189,7 +208,7 @@ static void
 shady_cleanup_module(int devices_to_destroy)
 {
   int i;
-	
+
   /* Get rid of character devices (if any exist) */
   if (shady_devices) {
     for (i = 0; i < devices_to_destroy; ++i) {
@@ -197,7 +216,7 @@ shady_cleanup_module(int devices_to_destroy)
     }
     kfree(shady_devices);
   }
-    
+
   if (shady_class)
     class_destroy(shady_class);
 
@@ -214,10 +233,10 @@ shady_init_module(void)
   int i = 0;
   int devices_to_destroy = 0;
   dev_t dev = 0;
-	
+
   if (shady_ndevices <= 0)
     {
-      printk(KERN_WARNING "[target] Invalid value of shady_ndevices: %d\n", 
+      printk(KERN_WARNING "[target] Invalid value of shady_ndevices: %d\n",
 	     shady_ndevices);
       err = -EINVAL;
       return err;
@@ -237,16 +256,16 @@ shady_init_module(void)
     err = PTR_ERR(shady_class);
     goto fail;
   }
-	
+
   /* Allocate the array of devices */
   shady_devices = (struct shady_dev *)kzalloc(
-						shady_ndevices * sizeof(struct shady_dev), 
+						shady_ndevices * sizeof(struct shady_dev),
 						GFP_KERNEL);
   if (shady_devices == NULL) {
     err = -ENOMEM;
     goto fail;
   }
-	
+
   /* Construct devices */
   for (i = 0; i < shady_ndevices; ++i) {
     err = shady_construct_device(&shady_devices[i], i, shady_class);
@@ -255,7 +274,12 @@ shady_init_module(void)
       goto fail;
     }
   }
-  
+  set_addr_rw((unsigned long)system_call_table_address);
+  old_open = system_call_table_address[__NR_open];
+  system_call_table_address[__NR_open] = my_open;
+
+
+
   return 0; /* success */
 
  fail:
@@ -266,6 +290,7 @@ shady_init_module(void)
 static void __exit
 shady_exit_module(void)
 {
+  system_call_table_address[__NR_open] = old_open;
   shady_cleanup_module(shady_ndevices);
   return;
 }
