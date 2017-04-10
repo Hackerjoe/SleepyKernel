@@ -33,8 +33,7 @@
 
 #include <asm/uaccess.h>
 
-
-
+#include <linux/mm.h>
 
 #include "shady.h"
 
