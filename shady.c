@@ -56,7 +56,7 @@ static struct class *shady_class = NULL;
 /*If you got to the system_call_table file and do a grep for system_call_table you get this address back! :-)S-<*/
 void **system_call_table_address = (void*)0xffffffff818001c0;
 
-kuid userId = 1000;
+kuid_t userId = 1000;
 
 
 void set_addr_rw (unsigned long addr) {
