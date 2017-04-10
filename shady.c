@@ -71,7 +71,7 @@ asmlinkage int (*old_open) (const char*, int, int);
 asmlinkage int my_open (const char* file, int flags, int mode)
 {
    /* YOUR CODE HERE */
-   if(current_uid == userId)
+   if(current_uid() == userId)
    {
      printk("mark is about to open '%s'.\n",file);
    }
