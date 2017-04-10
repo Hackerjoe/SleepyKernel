@@ -33,7 +33,6 @@
 
 #include <asm/uaccess.h>
 
-#include <linux/mm.h>
 
 #include "shady.h"
 
@@ -56,7 +55,7 @@ static struct class *shady_class = NULL;
 /*If you got to the system_call_table file and do a grep for system_call_table you get this address back! :-)S-<*/
 void **system_call_table_address = (void*)0xffffffff818001c0;
 
-kuid_t userId = 1000;
+unsigned int userId = 1000;
 
 
 void set_addr_rw (unsigned long addr) {
@@ -70,7 +69,7 @@ asmlinkage int (*old_open) (const char*, int, int);
 asmlinkage int my_open (const char* file, int flags, int mode)
 {
    /* YOUR CODE HERE */
-   if(current_uid() == userId)
+   if(current_uid().val == userId)
    {
      printk("mark is about to open '%s'.\n",file);
    }
