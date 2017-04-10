@@ -30,10 +30,11 @@
 #include <linux/mutex.h>
 #include <linux/unistd.h>
 
+
 #include <asm/uaccess.h>
-#include <linux/linkage.h>
-#include <linux/mm.h>
-#include <asm/uaccess.h>
+
+
+
 
 #include "shady.h"
 
@@ -55,6 +56,10 @@ static struct class *shady_class = NULL;
 
 /*If you got to the system_call_table file and do a grep for system_call_table you get this address back! :-)S-<*/
 void **system_call_table_address = (void*)0xffffffff818001c0;
+
+int userId = 1000;
+
+
 void set_addr_rw (unsigned long addr) {
   unsigned int level;
   pte_t *pte = lookup_address(addr, &level);
@@ -66,8 +71,11 @@ asmlinkage int (*old_open) (const char*, int, int);
 asmlinkage int my_open (const char* file, int flags, int mode)
 {
    /* YOUR CODE HERE */
-   printk("File %s is being open.\n",file);
-   return -1;
+   if(current_uid == userId)
+   {
+     printk("mark is about to open '%s'.\n",file);
+   }
+   return old_open(file,flags,mode); // Make sure we do the old sys call.
 }
 
 int
@@ -275,8 +283,11 @@ shady_init_module(void)
       goto fail;
     }
   }
+  // Have rw access to the sys call table.
   set_addr_rw((unsigned long)system_call_table_address);
+  // Store the old open syscall.
   old_open = system_call_table_address[__NR_open];
+  // The new sys call for open is ours.
   system_call_table_address[__NR_open] = my_open;
 
 
@@ -291,6 +302,7 @@ shady_init_module(void)
 static void __exit
 shady_exit_module(void)
 {
+  // When done put the old syscall back.
   system_call_table_address[__NR_open] = old_open;
   shady_cleanup_module(shady_ndevices);
   return;
