@@ -95,15 +95,15 @@ sleepy_read(struct file *filp, char __user *buf, size_t count,
     return -EINTR;
 
   /* YOUR CODE HERE */
-  if(waitqueue_active(&dev->wq)==0)
+  if(waitqueue_active(&dev->wq)==0) // Check if there is something in the queue.
   {
     printk(KERN_INFO "No one in queue.\n");
     mutex_unlock(&dev->sleepy_mutex);
     return 0;
   }
   printk(KERN_INFO "Wake everybody up.\n");
-  dev->flag = 1;
-  wake_up_interruptible(&dev->wq);
+  dev->flag = 1; // Change condition.
+  wake_up_interruptible(&dev->wq); // Wake up the queue.
 
   /* END YOUR CODE */
 
@@ -124,26 +124,26 @@ sleepy_write(struct file *filp, const char __user *buf, size_t count,
 
   /* YOUR CODE HERE */
 
-  if(count > 4 || count == 0)
+  if(count > 4 || count == 0) // Check if the right input.
   {
     printk(KERN_INFO "Wrong input count.\n");
     mutex_unlock(&dev->sleepy_mutex);
     return EINVAL;
   }
 
-  timeFromUser = *(int*)buf;
+  timeFromUser = *(int*)buf; // get input.
 
   mutex_unlock(&dev->sleepy_mutex);
-  remainingTime = wait_event_interruptible_timeout(dev->wq,dev->flag != 0,timeFromUser*HZ);
+  remainingTime = wait_event_interruptible_timeout(dev->wq,dev->flag != 0,timeFromUser*HZ); // wait for jiffies.
   mutex_lock(&dev->sleepy_mutex);
   dev->flag = 0;
-  if(remainingTime == 0)
+  if(remainingTime == 0) // waited the amount of time.
   {
     printk(KERN_INFO "Normal exit.\n");
     mutex_unlock(&dev->sleepy_mutex);
     return 0;
   }
-  else
+  else // We got woke up.
   {
     printk(KERN_INFO "Not normal exit. %d\n",remainingTime/HZ);
     mutex_unlock(&dev->sleepy_mutex);
